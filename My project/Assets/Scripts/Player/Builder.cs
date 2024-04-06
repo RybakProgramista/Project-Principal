@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEditor;
@@ -9,7 +10,8 @@ public class Builder : MonoBehaviour
     private bool isLockedFirstPoint;
     [SerializeField]
     private GameObject wallPrefab;
-    private GameObject wallBlueprint;
+    [SerializeField]
+    private List<GameObject> wallBlueprints = new List<GameObject>();
     private void Update()
     {
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
@@ -17,17 +19,33 @@ public class Builder : MonoBehaviour
         Physics.Raycast(ray, out hit, Mathf.Infinity);
         if (isLockedFirstPoint)
         {
-            if(wallBlueprint == null)
+            int fillAmount = Convert.ToInt32(Vector3.Distance(startPoint, hit.point) / wallPrefab.transform.localScale.x);
+            if(fillAmount > wallBlueprints.Count)
             {
-                wallBlueprint = Instantiate(wallPrefab);
+                while(fillAmount != wallBlueprints.Count)
+                {
+                    GameObject newBlueprint = Instantiate(wallPrefab);
+                    wallBlueprints.Add(newBlueprint);
+                }
             }
-            wallBlueprint.transform.position = (startPoint + hit.point) / 2;
-            wallBlueprint.transform.rotation = Quaternion.LookRotation(hit.point - startPoint) * Quaternion.Euler(0, 90f, 0f);
-            wallBlueprint.transform.localScale = new Vector3(Vector3.Distance(startPoint, hit.point), 1f, 1f);
-            if (Input.GetKeyDown(KeyCode.Mouse0))
+            else if(fillAmount < wallBlueprints.Count)
             {
-                startPoint = hit.point;
-                wallBlueprint = null;
+                int overAmmount = wallBlueprints.Count - fillAmount;
+                for(int x = 0; x < overAmmount; x++)
+                {
+                    Destroy(wallBlueprints[wallBlueprints.Count - 1]);
+                    wallBlueprints.RemoveAt(wallBlueprints.Count - 1);
+                }
+            }
+            for (int i = 0; i < wallBlueprints.Count; i++)
+            {
+                GameObject blueprint = wallBlueprints[i];
+                float t = float.Parse(i + "") / float.Parse(wallBlueprints.Count + "");
+                Debug.Log(i + " / " + wallBlueprints.Count + " = " + t);
+                float x = (1 - t) * startPoint.x + t * hit.point.x;
+                float z = (1 - t) * startPoint.z + t * hit.point.z;
+                blueprint.transform.position = new Vector3(x, 0f, z);
+                blueprint.transform.rotation = Quaternion.LookRotation(hit.point - startPoint) * Quaternion.Euler(0, 90f, 0f);
             }
         }
         if (Input.GetKeyDown(KeyCode.Mouse0))
